@@ -1,0 +1,110 @@
+<script setup>
+import { Head } from '@inertiajs/vue3';
+
+defineProps({
+    order_number: String,
+    message: String,
+    order: Object,
+    payment: Object,
+});
+
+const formatPrice = (price) => {
+    return new Intl.NumberFormat('zh-TW', {
+        style: 'currency',
+        currency: 'TWD',
+        minimumFractionDigits: 0,
+    }).format(price);
+};
+</script>
+
+<template>
+    <Head title="付款成功" />
+
+    <div class="min-h-screen bg-gray-50 dark:bg-black py-12">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- 成功狀態卡片 -->
+            <div class="bg-white dark:bg-zinc-900 rounded-lg shadow-[0px_14px_34px_0px_rgba(0,0,0,0.08)] ring-1 ring-white/[0.05] dark:ring-zinc-800 overflow-hidden">
+                <!-- 頂部成功橫幅 -->
+                <div class="bg-green-500 px-6 py-8 text-center">
+                    <div class="inline-flex items-center justify-center w-16 h-16 bg-white/20 rounded-full mb-4">
+                        <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                    <h1 class="text-2xl font-bold text-white">付款成功</h1>
+                    <p class="text-green-100 mt-2">{{ message }}</p>
+                </div>
+
+                <!-- 訂單資訊 -->
+                <div class="p-6">
+                    <!-- 付款資訊 -->
+                    <div class="border-b border-gray-200 dark:border-zinc-700 pb-6 mb-6">
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">付款資訊</h2>
+                        <dl class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <dt class="text-gray-500 dark:text-gray-400">訂單編號</dt>
+                                <dd class="font-medium text-gray-900 dark:text-white mt-1">{{ order_number }}</dd>
+                            </div>
+                            <div v-if="payment">
+                                <dt class="text-gray-500 dark:text-gray-400">交易編號</dt>
+                                <dd class="font-medium text-gray-900 dark:text-white mt-1">{{ payment.trade_no }}</dd>
+                            </div>
+                            <div v-if="payment?.paid_at">
+                                <dt class="text-gray-500 dark:text-gray-400">付款時間</dt>
+                                <dd class="font-medium text-gray-900 dark:text-white mt-1">{{ payment.paid_at }}</dd>
+                            </div>
+                            <div v-if="payment">
+                                <dt class="text-gray-500 dark:text-gray-400">付款金額</dt>
+                                <dd class="font-medium text-green-600 dark:text-green-400 mt-1">{{ formatPrice(payment.amount) }}</dd>
+                            </div>
+                        </dl>
+                    </div>
+
+                    <!-- 訂單明細 -->
+                    <div v-if="order?.items?.length" class="mb-6">
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">訂單明細</h2>
+                        <div class="bg-gray-50 dark:bg-zinc-800 rounded-lg overflow-hidden">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-100 dark:bg-zinc-700">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-gray-600 dark:text-gray-300 font-medium">商品</th>
+                                        <th class="px-4 py-3 text-center text-gray-600 dark:text-gray-300 font-medium">數量</th>
+                                        <th class="px-4 py-3 text-right text-gray-600 dark:text-gray-300 font-medium">單價</th>
+                                        <th class="px-4 py-3 text-right text-gray-600 dark:text-gray-300 font-medium">小計</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200 dark:divide-zinc-700">
+                                    <tr v-for="(item, index) in order.items" :key="index">
+                                        <td class="px-4 py-3 text-gray-900 dark:text-white">{{ item.name }}</td>
+                                        <td class="px-4 py-3 text-center text-gray-600 dark:text-gray-300">{{ item.quantity }}</td>
+                                        <td class="px-4 py-3 text-right text-gray-600 dark:text-gray-300">{{ formatPrice(item.price) }}</td>
+                                        <td class="px-4 py-3 text-right text-gray-900 dark:text-white font-medium">{{ formatPrice(item.subtotal) }}</td>
+                                    </tr>
+                                </tbody>
+                                <tfoot class="bg-gray-100 dark:bg-zinc-700">
+                                    <tr>
+                                        <td colspan="3" class="px-4 py-3 text-right font-semibold text-gray-900 dark:text-white">總計</td>
+                                        <td class="px-4 py-3 text-right font-bold text-green-600 dark:text-green-400 text-lg">{{ formatPrice(order.total) }}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 按鈕區域 -->
+                    <div class="flex flex-col sm:flex-row gap-3 pt-4">
+                        <a
+                            href="/"
+                            class="flex-1 inline-flex items-center justify-center px-6 py-3 bg-gray-800 dark:bg-white border border-transparent rounded-md font-semibold text-sm text-white dark:text-gray-800 uppercase tracking-widest hover:bg-gray-700 dark:hover:bg-gray-100 focus:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
+                        >
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                            </svg>
+                            返回首頁
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>

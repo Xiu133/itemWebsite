@@ -1,0 +1,498 @@
+/* Merchant Dashboard Styles */
+
+/* Dashboard Page Layout */
+.dashboard-page {
+    min-height: calc(100vh - 200px);
+    padding-top: 100px;
+    padding-bottom: 60px;
+    background: var(--bg-primary);
+}
+
+.dashboard-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+/* Merchant Navigation */
+nav.merchant-nav {
+    display: flex !important;
+    gap: 2rem;
+}
+
+nav.merchant-nav a {
+    font-size: 0.8rem;
+    font-weight: 400;
+    letter-spacing: 0.1em;
+    color: var(--text-secondary);
+    text-decoration: none;
+    padding: 0.5rem 0;
+    position: relative;
+    transition: color 0.3s;
+}
+
+nav.merchant-nav a::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background: var(--accent);
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+nav.merchant-nav a:hover,
+nav.merchant-nav a.active {
+    color: var(--text-primary);
+}
+
+nav.merchant-nav a:hover::after,
+nav.merchant-nav a.active::after {
+    width: 100%;
+}
+
+/* User Menu */
+.user-menu {
+    position: relative;
+}
+
+.user-btn {
+    position: relative;
+}
+
+.user-dropdown {
+    position: absolute;
+    top: calc(100% + 0.75rem);
+    right: 0;
+    background: var(--white);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+    min-width: 220px;
+    z-index: 1001;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+}
+
+.user-dropdown.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.user-info {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.user-name {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.user-email {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.user-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1.25rem;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    text-decoration: none;
+    background: none;
+    border: none;
+    width: 100%;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.2s;
+}
+
+.user-menu-item:hover {
+    background: var(--bg-secondary);
+}
+
+.user-menu-item svg {
+    width: 18px;
+    height: 18px;
+    stroke: var(--text-secondary);
+    stroke-width: 1.5;
+    fill: none;
+}
+
+.user-menu-divider {
+    height: 1px;
+    background: var(--border);
+}
+
+.logout-btn {
+    color: var(--text-primary);
+}
+
+.logout-btn:hover {
+    color: #c0392b;
+}
+
+.logout-btn:hover svg {
+    stroke: #c0392b;
+}
+
+/* Welcome Section */
+.welcome-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 3rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.welcome-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2.5rem;
+    font-weight: 400;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.welcome-subtitle {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+}
+
+.welcome-date {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+}
+
+/* Management Cards Grid */
+.management-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 4rem;
+}
+
+.management-card {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 2rem;
+    background: var(--white);
+    border: 1px solid var(--border);
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.management-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3px;
+    height: 100%;
+    background: var(--accent);
+    transform: scaleY(0);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.management-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+    border-color: var(--accent-light);
+}
+
+.management-card:hover::before {
+    transform: scaleY(1);
+}
+
+.card-icon {
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-secondary);
+    flex-shrink: 0;
+    transition: all 0.3s;
+}
+
+.management-card:hover .card-icon {
+    background: var(--accent);
+}
+
+.card-icon svg {
+    width: 28px;
+    height: 28px;
+    stroke: var(--accent);
+    stroke-width: 1.5;
+    fill: none;
+    transition: stroke 0.3s;
+}
+
+.management-card:hover .card-icon svg {
+    stroke: var(--white);
+}
+
+.card-content {
+    flex: 1;
+}
+
+.card-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.35rem;
+    font-weight: 400;
+    color: var(--text-primary);
+    margin-bottom: 0.35rem;
+}
+
+.card-desc {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+.card-arrow {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: all 0.3s;
+}
+
+.management-card:hover .card-arrow {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.card-arrow svg {
+    width: 20px;
+    height: 20px;
+    stroke: var(--accent);
+    stroke-width: 1.5;
+    fill: none;
+}
+
+/* Expandable Card */
+.management-card.expandable {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0;
+    cursor: pointer;
+}
+
+.management-card.expandable .card-main {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 2rem;
+    cursor: pointer;
+}
+
+.management-card.expandable .card-arrow {
+    opacity: 1;
+    transform: none;
+}
+
+.management-card.expandable .expand-icon {
+    transition: transform 0.3s ease;
+}
+
+.management-card.expandable.expanded .expand-icon {
+    transform: rotate(180deg);
+}
+
+.card-submenu {
+    max-height: 0;
+    overflow: hidden;
+    border-top: 0 solid var(--border);
+    transition: max-height 0.3s ease, border-top-width 0.3s ease;
+}
+
+.management-card.expandable.expanded .card-submenu {
+    max-height: 200px;
+    border-top-width: 1px;
+}
+
+.submenu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 2rem 1rem 5.5rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border-bottom: 1px solid transparent;
+}
+
+.submenu-item:last-child {
+    border-bottom: none;
+}
+
+.submenu-item:hover {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.submenu-item svg {
+    width: 18px;
+    height: 18px;
+    stroke: var(--text-muted);
+    stroke-width: 1.5;
+    fill: none;
+    transition: stroke 0.2s ease;
+}
+
+.submenu-item:hover svg {
+    stroke: var(--accent);
+}
+
+/* Stats Section */
+.stats-section {
+    margin-bottom: 3rem;
+}
+
+.stats-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.5rem;
+    font-weight: 400;
+    color: var(--text-primary);
+    margin-bottom: 1.5rem;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+}
+
+.stat-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    padding: 1.75rem;
+    text-align: center;
+    transition: all 0.3s;
+}
+
+.stat-card:hover {
+    border-color: var(--accent-light);
+}
+
+.stat-value {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2rem;
+    font-weight: 400;
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+}
+
+/* Dashboard Footer */
+.dashboard-footer {
+    padding: 2rem;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border);
+}
+
+.dashboard-footer .footer-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.dashboard-footer .footer-copyright {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .management-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-page {
+        padding-top: 80px;
+    }
+
+    .dashboard-container {
+        padding: 0 1.5rem;
+    }
+
+    .welcome-section {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .welcome-title {
+        font-size: 1.75rem;
+    }
+
+    .management-card {
+        padding: 1.5rem;
+    }
+
+    .card-icon {
+        width: 48px;
+        height: 48px;
+    }
+
+    .card-icon svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    .card-title {
+        font-size: 1.15rem;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .stat-card {
+        padding: 1.25rem;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+    }
+
+    nav.merchant-nav {
+        display: flex !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+}

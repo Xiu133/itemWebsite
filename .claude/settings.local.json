@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run build:*)",
+      "Bash(ls:*)",
+      "Bash(dir /s /b \"c:\\\\laragon\\\\www\\\\itemWebsite\\\\vendor\\\\ecpay\\\\sdk\\\\src\\\\Services\\\\*.php\")"
+    ]
+  }
+}

@@ -1,0 +1,83 @@
+### 購物車 API 測試腳本
+### 使用 VS Code REST Client 或 Postman
+
+@baseUrl = http://localhost/itemWebsite/public/api
+@contentType = application/json
+
+### 1. 取得購物車內容
+GET {{baseUrl}}/cart
+Content-Type: {{contentType}}
+
+###
+
+### 2. 加入商品到購物車（沒有規格的商品）
+POST {{baseUrl}}/cart
+Content-Type: {{contentType}}
+
+{
+  "product_id": 1,
+  "quantity": 1
+}
+
+###
+
+### 3. 加入商品到購物車（有規格的商品 - 躺椅橡木色）
+POST {{baseUrl}}/cart
+Content-Type: {{contentType}}
+
+{
+  "product_id": 1,
+  "product_variant_id": 1,
+  "quantity": 2
+}
+
+###
+
+### 4. 加入商品到購物車（花器米白S號）
+POST {{baseUrl}}/cart
+Content-Type: {{contentType}}
+
+{
+  "product_id": 2,
+  "product_variant_id": 4,
+  "quantity": 1
+}
+
+###
+
+### 5. 更新購物車項目數量（將 cartItemId 改為實際的 ID）
+PUT {{baseUrl}}/cart/1
+Content-Type: {{contentType}}
+
+{
+  "quantity": 3
+}
+
+###
+
+### 6. 移除購物車項目（將 cartItemId 改為實際的 ID）
+DELETE {{baseUrl}}/cart/1
+
+###
+
+### 7. 驗證購物車庫存
+POST {{baseUrl}}/cart/validate
+Content-Type: {{contentType}}
+
+###
+
+### 8. 清空購物車
+POST {{baseUrl}}/cart/clear
+Content-Type: {{contentType}}
+
+###
+
+### 9. 合併訪客購物車（登入後使用）
+POST {{baseUrl}}/cart/merge
+Content-Type: {{contentType}}
+
+{
+  "guest_session_id": "your-session-id-here"
+}
+
+###
