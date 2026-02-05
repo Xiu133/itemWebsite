@@ -82,23 +82,14 @@
             </div>
 
             <div class="products-section">
-                <div class="section-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <div class="section-header">
                     <h2 class="section-title">物流管理</h2>
-                    <div class="batch-actions" id="batch-actions" style="display: flex; align-items: center; gap: 1rem;">
-                        <span id="selected-count" style="color: #6b7280; font-size: 0.875rem;">已選擇 0 筆</span>
-                        <button class="btn-action btn-primary" onclick="batchCreateShipment()" id="batch-create-btn" disabled style="opacity: 0.5; cursor: not-allowed;">
-                            批次出貨
-                        </button>
-                    </div>
                 </div>
 
                 @if($orders->count() > 0)
                     <table class="products-table">
                         <thead>
                             <tr>
-                                <th style="width: 40px;">
-                                    <input type="checkbox" id="select-all" onchange="toggleSelectAll(this)">
-                                </th>
                                 <th>訂單編號</th>
                                 <th>收件人</th>
                                 <th>收件地址</th>
@@ -116,12 +107,7 @@
                                         ($order->payment_method === 'cash_on_delivery' && $order->status === 'pending')
                                     );
                                 @endphp
-                                <tr data-order-id="{{ $order->id }}" data-can-ship="{{ $canCreateShipment ? '1' : '0' }}">
-                                    <td>
-                                        @if($canCreateShipment)
-                                            <input type="checkbox" class="order-checkbox" value="{{ $order->id }}" onchange="updateSelectedCount()">
-                                        @endif
-                                    </td>
+                                <tr>
                                     <td>
                                         <a href="{{ route('manage-orders.show', $order->id) }}" style="color: #111; font-weight: 500;">
                                             {{ $order->order_number }}
