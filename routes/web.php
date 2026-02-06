@@ -114,22 +114,16 @@ Route::middleware([
     })->name('dashboard');
 });
 
-// 綠界金流路由
+// 綠界金流路由（需要 session 的路由保留在 web.php）
+// notify 和 callback 已移至 api.php（不需要 session）
 Route::prefix('ecpay')->name('ecpay.')->group(function () {
     // 發起付款（需登入）
     Route::match(['get', 'post'], '/checkout', [EcpayController::class, 'checkout'])
         ->middleware('auth')
         ->name('checkout');
 
-    // 付款結果通知（Server 端，綠界主動呼叫）
-    // CSRF 排除已在 bootstrap/app.php 中設定
-    Route::post('/notify', [EcpayController::class, 'notify'])
-        ->name('notify');
-
-    // 付款完成回調（Client 端）
-    // CSRF 排除已在 bootstrap/app.php 中設定
-    Route::match(['get', 'post'], '/callback', [EcpayController::class, 'callback'])
-        ->name('callback');
+    // 付款結果頁面（GET 重定向，保留 session）
+    Route::get('/result', [EcpayController::class, 'result'])->name('result');
 
     // 返回商店
     Route::get('/return', [EcpayController::class, 'return'])->name('return');

@@ -12,17 +12,12 @@
   @vite(['resources/css/commodity/style.css', 'resources/css/search/style.css'])
   <meta name="csrf-token" content="{{ csrf_token() }}">
 
-  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-
   <!-- 將後端數據傳遞給 JavaScript -->
   <script>
     window.categoriesData = @json($categories);
     window.brandsData = @json($brands);
     window.productsData = @json($products);
   </script>
-
-  <!-- 引用 JavaScript -->
-  @vite(['resources/js/commodity/app.js'])
 
 </head>
 <body>
@@ -240,7 +235,7 @@
           <div class="products-grid">
             <div class="product-card" v-for="product in filteredProducts" :key="product.id">
               <div class="product-image">
-                <img :src="'/images/' + product.image" :alt="product.name">
+                <img :src="product.image" :alt="product.name">
                 <span class="product-tag" :class="product.tagType" v-if="product.tag">@{{ product.tag }}</span>
                 <div class="product-actions">
                   <button class="product-action-btn" @click.stop="addToCart(product)">
@@ -328,7 +323,7 @@
       <div class="cart-items">
         <div class="cart-item" v-for="item in cartItems" :key="item.id">
           <div class="cart-item-image">
-            <img :src="'/images/' + item.image" :alt="item.name">
+            <img :src="item.image" :alt="item.name">
           </div>
           <div class="cart-item-info">
             <p class="cart-item-brand">@{{ item.brand }}</p>
@@ -348,7 +343,7 @@
           <span class="cart-subtotal-label">小計</span>
           <span class="cart-subtotal-value">NT$ @{{ cartTotal.toLocaleString() }}</span>
         </div>
-        <button class="cart-checkout">前往結帳</button>
+        <button class="cart-checkout" @click="goToCheckout">前往結帳</button>
       </div>
     </div>
   </div>
@@ -393,10 +388,208 @@
     </div>
   </div>
 
-  <!-- 引用 Vue -->
+  <!-- Vue -->
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+  <!-- 共用購物車模組 -->
+  <script src="/js/cart.js"></script>
+  <script>
+    // 設定當前用戶 ID（用於區分不同用戶的購物車）
+    window.CartModule.setUserId(@json(auth()->id()));
+
+    // 登出時清除購物車
+    document.addEventListener('DOMContentLoaded', function() {
+      document.querySelectorAll('form[action*="logout"]').forEach(function(form) {
+        form.addEventListener('submit', function() {
+          window.CartModule.forceClearCart();
+        });
+      });
+    });
+  </script>
 
   <!-- 搜尋功能 JS -->
   @vite(['resources/js/search/app.js'])
+
+  <!-- Vue App -->
+  <script>
+    const { createApp, ref, computed, onMounted, onUnmounted, watch, nextTick } = Vue
+
+    createApp({
+      setup() {
+        const isScrolled = ref(false)
+        const userMenuOpen = ref(false)
+        const searchOpen = ref(false)
+        const email = ref('')
+        const searchQuery = ref('')
+        const searchInput = ref(null)
+
+        // 篩選狀態
+        const selectedCategory = ref(null)
+        const selectedBrand = ref(null)
+        const priceRange = ref(null)
+        const onlyOnSale = ref(false)
+        const sortBy = ref('newest')
+
+        // 從後端獲取數據
+        const categories = ref(window.categoriesData || [])
+        const brands = ref(window.brandsData || [])
+        const products = ref(window.productsData || [])
+        const filteredProducts = ref([...products.value])
+        const wishlist = ref([])
+
+        // 使用共用購物車模組
+        const { cartItems, cartOpen, cartItemsCount, cartTotal, addToCart, updateQty, clearCart, goToCheckout } = window.CartModule.useCart()
+
+        // 篩選商品
+        const filterProducts = () => {
+          let result = [...products.value]
+
+          if (searchQuery.value) {
+            const query = searchQuery.value.toLowerCase()
+            result = result.filter(product =>
+              product.name.toLowerCase().includes(query) ||
+              product.brand.toLowerCase().includes(query) ||
+              product.category.toLowerCase().includes(query)
+            )
+          }
+
+          if (selectedCategory.value !== null) {
+            result = result.filter(product => product.category_id === selectedCategory.value)
+          }
+
+          if (selectedBrand.value !== null) {
+            result = result.filter(product => product.brand_id === selectedBrand.value)
+          }
+
+          if (priceRange.value) {
+            switch (priceRange.value) {
+              case 'under1000':
+                result = result.filter(product => product.price < 1000)
+                break
+              case '1000to3000':
+                result = result.filter(product => product.price >= 1000 && product.price <= 3000)
+                break
+              case '3000to5000':
+                result = result.filter(product => product.price >= 3000 && product.price <= 5000)
+                break
+              case 'over5000':
+                result = result.filter(product => product.price > 5000)
+                break
+            }
+          }
+
+          if (onlyOnSale.value) {
+            result = result.filter(product => product.originalPrice !== null)
+          }
+
+          filteredProducts.value = result
+          sortProducts()
+        }
+
+        const sortProducts = () => {
+          const sorted = [...filteredProducts.value]
+          switch (sortBy.value) {
+            case 'newest':
+              sorted.sort((a, b) => b.id - a.id)
+              break
+            case 'price-low':
+              sorted.sort((a, b) => a.price - b.price)
+              break
+            case 'price-high':
+              sorted.sort((a, b) => b.price - a.price)
+              break
+            case 'name':
+              sorted.sort((a, b) => a.name.localeCompare(b.name, 'zh-TW'))
+              break
+          }
+          filteredProducts.value = sorted
+        }
+
+        const resetFilters = () => {
+          selectedCategory.value = null
+          selectedBrand.value = null
+          priceRange.value = null
+          onlyOnSale.value = false
+          searchQuery.value = ''
+          sortBy.value = 'newest'
+          filterProducts()
+        }
+
+        const toggleWishlist = (product) => {
+          const index = wishlist.value.indexOf(product.id)
+          if (index > -1) {
+            wishlist.value.splice(index, 1)
+          } else {
+            wishlist.value.push(product.id)
+          }
+        }
+
+        const isInWishlist = (productId) => {
+          return wishlist.value.includes(productId)
+        }
+
+        const subscribe = () => {
+          if (email.value) {
+            alert('感謝您的訂閱！')
+            email.value = ''
+          }
+        }
+
+        const handleScroll = () => {
+          isScrolled.value = window.scrollY > 50
+        }
+
+        const handleClickOutside = (event) => {
+          if (userMenuOpen.value && !event.target.closest('.user-dropdown') && !event.target.closest('.icon-btn')) {
+            userMenuOpen.value = false
+          }
+        }
+
+        onMounted(() => {
+          window.addEventListener('scroll', handleScroll)
+          document.addEventListener('click', handleClickOutside)
+          filterProducts()
+        })
+
+        onUnmounted(() => {
+          window.removeEventListener('scroll', handleScroll)
+          document.removeEventListener('click', handleClickOutside)
+        })
+
+        return {
+          isScrolled,
+          cartOpen,
+          userMenuOpen,
+          searchOpen,
+          email,
+          searchQuery,
+          searchInput,
+          selectedCategory,
+          selectedBrand,
+          priceRange,
+          onlyOnSale,
+          sortBy,
+          categories,
+          brands,
+          products,
+          filteredProducts,
+          wishlist,
+          cartItems,
+          cartItemsCount,
+          cartTotal,
+          filterProducts,
+          sortProducts,
+          resetFilters,
+          toggleWishlist,
+          isInWishlist,
+          addToCart,
+          updateQty,
+          clearCart,
+          goToCheckout,
+          subscribe
+        }
+      }
+    }).mount('#app')
+  </script>
 </body>
 </html>

@@ -23,9 +23,10 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         // 排除綠界金流和物流回調路由的 CSRF 驗證
+        // 注意：api 路由本身不需要 CSRF，但保留這裡以防萬一
         $middleware->validateCsrfTokens(except: [
-            'ecpay/notify',
-            'ecpay/callback',
+            'api/ecpay/notify',
+            'api/ecpay/callback',
             'ecpay-logistics/status-notify',
         ]);
     })

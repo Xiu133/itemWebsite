@@ -60,3 +60,11 @@ Route::prefix('orders')->middleware('auth:sanctum')->group(function () {
     Route::get('/', [CheckoutController::class, 'orders']);
     Route::get('/{orderNumber}', [CheckoutController::class, 'orderDetail']);
 });
+
+// 綠界金流回調路由（無 session，供外部服務呼叫）
+Route::prefix('ecpay')->group(function () {
+    Route::post('/notify', [\App\Http\Controllers\Payment\EcpayController::class, 'notify'])
+        ->name('api.ecpay.notify');
+    Route::match(['get', 'post'], '/callback', [\App\Http\Controllers\Payment\EcpayController::class, 'callback'])
+        ->name('api.ecpay.callback');
+});

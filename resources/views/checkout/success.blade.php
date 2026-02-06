@@ -9,6 +9,14 @@
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
 
   @vite(['resources/css/checkout/style.css'])
+
+  <!-- 購物車模組（用於結帳後清空） -->
+  <script src="/js/cart.js"></script>
+  <script>
+    // 設定用戶 ID 並清空購物車
+    window.CartModule.setUserId(@json(auth()->id()));
+    window.CartModule.forceClearCart();
+  </script>
 </head>
 <body>
   <div id="app">

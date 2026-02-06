@@ -1,11 +1,13 @@
 <script setup>
 import { Head } from '@inertiajs/vue3';
+import { onMounted } from 'vue';
 
-defineProps({
+const props = defineProps({
     order_number: String,
     message: String,
     order: Object,
     payment: Object,
+    user_id: [Number, String],
 });
 
 const formatPrice = (price) => {
@@ -15,6 +17,14 @@ const formatPrice = (price) => {
         minimumFractionDigits: 0,
     }).format(price);
 };
+
+// 訂單已建立，清空 localStorage 購物車
+onMounted(() => {
+    const cartKey = props.user_id ? `cart_user_${props.user_id}` : 'cart_guest';
+    localStorage.removeItem(cartKey);
+    // 同時清除訪客購物車（以防萬一）
+    localStorage.removeItem('cart_guest');
+});
 </script>
 
 <template>

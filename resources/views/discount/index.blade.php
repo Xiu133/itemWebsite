@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>限時優惠 — MONO</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,17 +12,12 @@
   <!-- 引用 CSS -->
   @vite(['resources/css/ecommerce/style.css', 'resources/css/discount/style.css', 'resources/css/search/style.css'])
 
-  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-
   <!-- 將後端數據傳遞給 JavaScript -->
   <script>
     window.productsData = @json($products);
     window.categoriesData = @json($categories);
     window.totalCount = {{ $totalCount }};
   </script>
-
-  <!-- Vue App -->
-  @vite(['resources/js/discount/app.js'])
 </head>
 <body>
   <div id="app">
@@ -276,7 +272,7 @@
           <span class="cart-subtotal-label">小計</span>
           <span class="cart-subtotal-value">NT$ @{{ cartTotal.toLocaleString() }}</span>
         </div>
-        <button class="cart-checkout">前往結帳</button>
+        <button class="cart-checkout" @click="goToCheckout">前往結帳</button>
       </div>
     </div>
   </div>
@@ -321,7 +317,107 @@
     </div>
   </div>
 
+  <!-- Vue -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+  <!-- 共用購物車模組 -->
+  <script src="/js/cart.js"></script>
+  <script>
+    // 設定當前用戶 ID（用於區分不同用戶的購物車）
+    window.CartModule.setUserId(@json(auth()->id()));
+
+    // 登出時清除購物車
+    document.addEventListener('DOMContentLoaded', function() {
+      document.querySelectorAll('form[action*="logout"]').forEach(function(form) {
+        form.addEventListener('submit', function() {
+          window.CartModule.forceClearCart();
+        });
+      });
+    });
+  </script>
+
   <!-- 搜尋功能 JS -->
   @vite(['resources/js/search/app.js'])
+
+  <!-- Vue App -->
+  <script>
+    const { createApp } = Vue
+
+    createApp({
+      mixins: [window.CartModule.cartMixin],
+      data() {
+        return {
+          isScrolled: false,
+          userMenuOpen: false,
+          email: '',
+          products: window.productsData || [],
+          categories: window.categoriesData || [],
+          selectedCategory: null,
+          loading: false,
+          countdown: {
+            days: 0,
+            hours: 0,
+            minutes: 0,
+            seconds: 0
+          }
+        }
+      },
+      computed: {
+        filteredProducts() {
+          if (this.selectedCategory === null) {
+            return this.products
+          }
+          return this.products.filter(p => p.categoryId === this.selectedCategory)
+        }
+      },
+      methods: {
+        filterByCategory(categoryId) {
+          this.selectedCategory = categoryId
+        },
+        subscribe() {
+          if (this.email) {
+            alert('感謝您的訂閱！')
+            this.email = ''
+          }
+        },
+        startCountdown() {
+          const endDate = new Date()
+          endDate.setDate(endDate.getDate() + 7)
+          endDate.setHours(23, 59, 59, 999)
+
+          const updateCountdown = () => {
+            const now = new Date()
+            const diff = endDate - now
+
+            if (diff <= 0) {
+              this.countdown = { days: 0, hours: 0, minutes: 0, seconds: 0 }
+              return
+            }
+
+            this.countdown.days = Math.floor(diff / (1000 * 60 * 60 * 24))
+            this.countdown.hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+            this.countdown.minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+            this.countdown.seconds = Math.floor((diff % (1000 * 60)) / 1000)
+          }
+
+          updateCountdown()
+          setInterval(updateCountdown, 1000)
+        }
+      },
+      mounted() {
+        window.addEventListener('scroll', () => {
+          this.isScrolled = window.scrollY > 50
+        })
+
+        document.addEventListener('click', (e) => {
+          if (!e.target.closest('.user-dropdown') && !e.target.closest('.icon-btn')) {
+            this.userMenuOpen = false
+          }
+        })
+
+        this.startCountdown()
+      }
+    }).mount('#app')
+  </script>
 </body>
 </html>
