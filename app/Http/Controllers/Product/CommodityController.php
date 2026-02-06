@@ -92,7 +92,7 @@ class CommodityController extends Controller
                     'description' => $product->description,
                     'price' => (float) $product->price,
                     'originalPrice' => $originalPrice,
-                    'image' => $product->image,
+                    'image' => $product->image ? '/images/' . $product->image : null,
                     'tag' => $tagName,
                     'tagType' => $tagType,
                     'tagColor' => $tag->color ?? null,

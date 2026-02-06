@@ -4,12 +4,11 @@
 const { createApp } = Vue;
 
 createApp({
+  mixins: [window.CartModule.cartMixin],
   data() {
     return {
       isScrolled: false,
       userMenuOpen: false,
-      cartOpen: false,
-      cartItems: [],
       email: '',
       products: window.productsData || [],
       categories: window.categoriesData || [],
@@ -29,44 +28,11 @@ createApp({
         return this.products;
       }
       return this.products.filter(p => p.categoryId === this.selectedCategory);
-    },
-    cartItemsCount() {
-      return this.cartItems.reduce((sum, item) => sum + item.qty, 0);
-    },
-    cartTotal() {
-      return this.cartItems.reduce((sum, item) => sum + item.price * item.qty, 0);
     }
   },
   methods: {
     filterByCategory(categoryId) {
       this.selectedCategory = categoryId;
-    },
-    addToCart(product) {
-      const existing = this.cartItems.find(item => item.id === product.id);
-      if (existing) {
-        existing.qty++;
-      } else {
-        this.cartItems.push({
-          id: product.id,
-          brand: product.brand,
-          name: product.name,
-          price: product.price,
-          image: product.image,
-          qty: 1
-        });
-      }
-      this.cartOpen = true;
-    },
-    updateQty(item, delta) {
-      item.qty += delta;
-      if (item.qty <= 0) {
-        this.cartItems = this.cartItems.filter(i => i.id !== item.id);
-      }
-    },
-    clearCart() {
-      if (confirm('確定要清空購物車嗎？')) {
-        this.cartItems = [];
-      }
     },
     subscribe() {
       if (this.email) {
@@ -114,16 +80,5 @@ createApp({
 
     // Start countdown
     this.startCountdown();
-
-    // Load cart from localStorage
-    const savedCart = localStorage.getItem('cart');
-    if (savedCart) {
-      this.cartItems = JSON.parse(savedCart);
-    }
-
-    // Watch cart changes
-    this.$watch('cartItems', (newVal) => {
-      localStorage.setItem('cart', JSON.stringify(newVal));
-    }, { deep: true });
   }
 }).mount('#app');

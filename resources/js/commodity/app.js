@@ -3,7 +3,6 @@ const { createApp, ref, computed, onMounted, onUnmounted, watch, nextTick } = Vu
 createApp({
   setup() {
     const isScrolled = ref(false)
-    const cartOpen = ref(false)
     const userMenuOpen = ref(false)
     const searchOpen = ref(false)
     const email = ref('')
@@ -24,15 +23,8 @@ createApp({
     const filteredProducts = ref([...products.value])
     const wishlist = ref([])
 
-    const cartItems = ref([])
-
-    const cartItemsCount = computed(() => {
-      return cartItems.value.reduce((sum, item) => sum + item.qty, 0)
-    })
-
-    const cartTotal = computed(() => {
-      return cartItems.value.reduce((sum, item) => sum + item.price * item.qty, 0)
-    })
+    // 使用共用購物車模組
+    const { cartItems, cartOpen, cartItemsCount, cartTotal, addToCart, updateQty, clearCart, goToCheckout } = window.CartModule.useCart()
 
     // 篩選商品
     const filterProducts = () => {
@@ -130,36 +122,6 @@ createApp({
       return wishlist.value.includes(productId)
     }
 
-    const addToCart = (product) => {
-      const existing = cartItems.value.find(item => item.id === product.id)
-      if (existing) {
-        existing.qty++
-      } else {
-        cartItems.value.push({ ...product, qty: 1 })
-      }
-    }
-
-    const updateQty = (item, delta) => {
-      item.qty += delta
-      if (item.qty <= 0) {
-        const index = cartItems.value.indexOf(item)
-        cartItems.value.splice(index, 1)
-      }
-    }
-
-    const clearCart = () => {
-      if (confirm('確定要清空購物車嗎？')) {
-        cartItems.value = []
-      }
-    }
-
-    const subscribe = () => {
-      if (email.value) {
-        alert('感謝您的訂閱！')
-        email.value = ''
-      }
-    }
-
     const handleScroll = () => {
       isScrolled.value = window.scrollY > 50
     }
@@ -221,7 +183,7 @@ createApp({
       addToCart,
       updateQty,
       clearCart,
-      subscribe
+      goToCheckout
     }
   }
 }).mount('#app')
