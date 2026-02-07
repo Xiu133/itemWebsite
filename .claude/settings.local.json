@@ -3,7 +3,13 @@
     "allow": [
       "Bash(npm run build:*)",
       "Bash(ls:*)",
-      "Bash(dir /s /b \"c:\\\\laragon\\\\www\\\\itemWebsite\\\\vendor\\\\ecpay\\\\sdk\\\\src\\\\Services\\\\*.php\")"
+      "Bash(dir /s /b \"c:\\\\laragon\\\\www\\\\itemWebsite\\\\vendor\\\\ecpay\\\\sdk\\\\src\\\\Services\\\\*.php\")",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git add:*)",
+      "Bash(dir:*)",
+      "WebFetch(domain:itemwebsite-1041954866534.asia-east1.run.app)",
+      "Bash(powershell -Command:*)"
     ]
   }
 }

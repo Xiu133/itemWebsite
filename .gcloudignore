@@ -1,0 +1,16 @@
+#!include:.gitignore
+.git/
+.claude/
+.env
+.env.backup
+node_modules/
+vendor/
+public/storage
+public/build
+public/hot
+storage/
+tests/
+.vscode/
+.idea/
+*.md
+docker-compose.yml

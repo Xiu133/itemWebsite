@@ -9,7 +9,7 @@ class BrandStoryController extends Controller
 {
     public function index()
     {
-        return view('brandstory.index');
+        return view('BrandStory.index');
     }
 }
 
