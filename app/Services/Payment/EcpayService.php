@@ -175,6 +175,16 @@ class EcpayService
 
         // 判斷付款結果
         if ($rtnCode == '1') {
+            // 已經處理過的付款不再重複更新
+            if ($payment->status === Payment::STATUS_PAID) {
+                Log::info('重複的綠界付款通知，略過處理', ['trade_no' => $tradeNo]);
+                return [
+                    'success' => true,
+                    'message' => '付款已處理',
+                    'payment' => $payment,
+                ];
+            }
+
             // 付款成功
             $this->ecpayRepository->updatePaymentStatus(
                 $tradeNo,
@@ -196,6 +206,15 @@ class EcpayService
                 'payment' => $payment->fresh(),
             ];
         } else {
+            // 已經是失敗狀態就不再重複更新
+            if ($payment->status === Payment::STATUS_FAILED) {
+                Log::info('重複的綠界失敗通知，略過處理', ['trade_no' => $tradeNo]);
+                return [
+                    'success' => false,
+                    'message' => '付款已處理',
+                ];
+            }
+
             // 付款失敗
             $this->ecpayRepository->updatePaymentStatus(
                 $tradeNo,
