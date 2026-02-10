@@ -7,6 +7,7 @@ use App\Repositories\Contracts\Logistics\LogisticsRepositoryInterface;
 use Ecpay\Sdk\Factories\Factory;
 use Ecpay\Sdk\Response\VerifiedArrayResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Spatie\Activitylog\Facades\Activity;
 
@@ -90,136 +91,145 @@ class EcpayLogisticsService
     {
         Log::info('開始建立宅配物流單', ['order_id' => $order->id]);
 
-        // 檢查訂單狀態（已付款、處理中，或者是貨到付款的待處理訂單）
-        $canCreateShipment = in_array($order->status, ['paid', 'processing']) ||
-            ($order->payment_method === 'cash_on_delivery' && $order->status === 'pending');
+        return DB::transaction(function () use ($order) {
+            // 重新取得訂單並加鎖，防止並發建立重複物流單
+            $order = Order::lockForUpdate()->find($order->id);
 
-        if (!$canCreateShipment) {
-            throw new \Exception('訂單狀態不允許建立物流單，請先完成付款');
-        }
-
-        // 檢查是否已建立物流單
-        if ($order->all_pay_logistics_id) {
-            throw new \Exception('此訂單已建立物流單');
-        }
-
-        // 產生物流交易編號
-        $logisticsTradeNo = $this->generateLogisticsTradeNo();
-
-        // 準備商品名稱
-        $goodsName = $this->prepareGoodsName($order);
-
-        // 組合收件地址
-        $receiverAddress = $order->shipping_city . $order->shipping_district . $order->shipping_address;
-
-        // 準備請求參數
-        $input = [
-            'MerchantID' => $this->merchantId,
-            'MerchantTradeNo' => $logisticsTradeNo,
-            'MerchantTradeDate' => date('Y/m/d H:i:s'),
-            'LogisticsType' => 'HOME',
-            'LogisticsSubType' => 'TCAT', // 黑貓宅急便
-            'GoodsAmount' => (int) $order->total,
-            'GoodsName' => $goodsName,
-            'SenderName' => $this->senderName,
-            'SenderCellPhone' => $this->senderCellPhone,
-            'SenderZipCode' => $this->senderZipCode,
-            'SenderAddress' => $this->senderAddress,
-            'ReceiverName' => $order->shipping_name,
-            'ReceiverCellPhone' => $order->shipping_phone,
-            'ReceiverZipCode' => $this->getZipCode($order->shipping_city, $order->shipping_district),
-            'ReceiverAddress' => $receiverAddress,
-            'Temperature' => '0001', // 常溫
-            'Distance' => '00',      // 同縣市
-            'Specification' => '0001', // 60cm
-            'ScheduledPickupTime' => '4', // 不限時
-            'ScheduledDeliveryTime' => '4', // 不限時
-            'ServerReplyURL' => route('ecpay-logistics.status-notify'),
-        ];
-
-        Log::info('物流 API 請求參數', $input);
-
-        try {
-            // 測試模式：跳過實際 API 呼叫，模擬成功回應
-            if ($this->testMode) {
-                Log::info('測試模式：跳過綠界 API 呼叫');
-                $logisticsId = 'TEST' . date('YmdHis') . rand(1000, 9999);
-                $result = [
-                    'RtnCode' => '1',
-                    'RtnMsg' => '測試模式',
-                    'AllPayLogisticsID' => $logisticsId,
-                ];
-            } else {
-                $postService = $this->factory->create('PostWithCmvStrResponseService');
-                $response = $postService->post($input, $this->getLogisticsUrl());
-
-                Log::info('物流 API 回應', ['response' => $response, 'type' => gettype($response)]);
-
-                // 解析回應
-                $result = $this->parseResponse($response);
-
-                Log::info('解析後的回應', ['result' => $result]);
-
-                // 取得回傳碼，支援不同的 key 名稱
-                $rtnCode = $result['RtnCode'] ?? $result['ResCode'] ?? $result['1'] ?? null;
-                $rtnMsg = $result['RtnMsg'] ?? $result['ResMessage'] ?? $result['ErrorMessage'] ?? '未知錯誤';
-                $logisticsId = $result['AllPayLogisticsID'] ?? $result['LogisticsID'] ?? $result['1|AllPayLogisticsID'] ?? null;
-
-                if ($rtnCode === null || ($rtnCode != '1' && $rtnCode != '300')) {
-                    Log::error('建立物流單失敗', $result);
-                    throw new \Exception($rtnMsg);
-                }
+            if (!$order) {
+                throw new \Exception('找不到訂單');
             }
 
-            // 更新訂單物流資訊
-            // 貨到付款訂單：狀態改為 shipped（已出貨），等送達後才完成入帳
-            // 已付款訂單：狀態改為 completed
-            $newStatus = ($order->payment_method === 'cash_on_delivery')
-                ? 'shipped'
-                : 'completed';
+            // 檢查訂單狀態（已付款、處理中，或者是貨到付款的待處理訂單）
+            $canCreateShipment = in_array($order->status, ['paid', 'processing']) ||
+                ($order->payment_method === 'cash_on_delivery' && $order->status === 'pending');
 
-            $this->logisticsRepository->updateOrderLogistics($order->id, [
-                'logistics_trade_no' => $logisticsTradeNo,
-                'all_pay_logistics_id' => $logisticsId,
-                'logistics_type' => 'HOME',
-                'logistics_sub_type' => 'TCAT',
-                'logistics_status' => Order::LOGISTICS_STATUS_CREATED,
-                'logistics_response_data' => $result,
-                'status' => $newStatus,
-                'shipped_at' => now(),
-            ]);
+            if (!$canCreateShipment) {
+                throw new \Exception('訂單狀態不允許建立物流單，請先完成付款');
+            }
 
-            Log::info('物流單建立成功', [
-                'order_id' => $order->id,
-                'logistics_trade_no' => $logisticsTradeNo,
-                'all_pay_logistics_id' => $logisticsId,
-            ]);
+            // 檢查是否已建立物流單（在鎖定狀態下檢查，避免 race condition）
+            if ($order->all_pay_logistics_id) {
+                throw new \Exception('此訂單已建立物流單');
+            }
 
-            // 記錄 activity log
-            $this->logAction($order, 'create', "建立物流單: {$order->order_number}", [
-                'logistics_trade_no' => $logisticsTradeNo,
-                'all_pay_logistics_id' => $logisticsId,
-                'logistics_type' => 'HOME',
-                'logistics_sub_type' => 'TCAT',
-            ]);
+            // 產生物流交易編號
+            $logisticsTradeNo = $this->generateLogisticsTradeNo();
 
-            return [
-                'success' => true,
-                'message' => '物流單建立成功',
-                'data' => [
-                    'logistics_trade_no' => $logisticsTradeNo,
-                    'all_pay_logistics_id' => $logisticsId,
-                ],
+            // 準備商品名稱
+            $goodsName = $this->prepareGoodsName($order);
+
+            // 組合收件地址
+            $receiverAddress = $order->shipping_city . $order->shipping_district . $order->shipping_address;
+
+            // 準備請求參數
+            $input = [
+                'MerchantID' => $this->merchantId,
+                'MerchantTradeNo' => $logisticsTradeNo,
+                'MerchantTradeDate' => date('Y/m/d H:i:s'),
+                'LogisticsType' => 'HOME',
+                'LogisticsSubType' => 'TCAT', // 黑貓宅急便
+                'GoodsAmount' => (int) $order->total,
+                'GoodsName' => $goodsName,
+                'SenderName' => $this->senderName,
+                'SenderCellPhone' => $this->senderCellPhone,
+                'SenderZipCode' => $this->senderZipCode,
+                'SenderAddress' => $this->senderAddress,
+                'ReceiverName' => $order->shipping_name,
+                'ReceiverCellPhone' => $order->shipping_phone,
+                'ReceiverZipCode' => $this->getZipCode($order->shipping_city, $order->shipping_district),
+                'ReceiverAddress' => $receiverAddress,
+                'Temperature' => '0001', // 常溫
+                'Distance' => '00',      // 同縣市
+                'Specification' => '0001', // 60cm
+                'ScheduledPickupTime' => '4', // 不限時
+                'ScheduledDeliveryTime' => '4', // 不限時
+                'ServerReplyURL' => route('ecpay-logistics.status-notify'),
             ];
 
-        } catch (\Exception $e) {
-            Log::error('建立物流單例外', [
-                'order_id' => $order->id,
-                'error' => $e->getMessage(),
-            ]);
+            Log::info('物流 API 請求參數', $input);
 
-            throw $e;
-        }
+            try {
+                // 測試模式：跳過實際 API 呼叫，模擬成功回應
+                if ($this->testMode) {
+                    Log::info('測試模式：跳過綠界 API 呼叫');
+                    $logisticsId = 'TEST' . date('YmdHis') . rand(1000, 9999);
+                    $result = [
+                        'RtnCode' => '1',
+                        'RtnMsg' => '測試模式',
+                        'AllPayLogisticsID' => $logisticsId,
+                    ];
+                } else {
+                    $postService = $this->factory->create('PostWithCmvStrResponseService');
+                    $response = $postService->post($input, $this->getLogisticsUrl());
+
+                    Log::info('物流 API 回應', ['response' => $response, 'type' => gettype($response)]);
+
+                    // 解析回應
+                    $result = $this->parseResponse($response);
+
+                    Log::info('解析後的回應', ['result' => $result]);
+
+                    // 取得回傳碼，支援不同的 key 名稱
+                    $rtnCode = $result['RtnCode'] ?? $result['ResCode'] ?? $result['1'] ?? null;
+                    $rtnMsg = $result['RtnMsg'] ?? $result['ResMessage'] ?? $result['ErrorMessage'] ?? '未知錯誤';
+                    $logisticsId = $result['AllPayLogisticsID'] ?? $result['LogisticsID'] ?? $result['1|AllPayLogisticsID'] ?? null;
+
+                    if ($rtnCode === null || ($rtnCode != '1' && $rtnCode != '300')) {
+                        Log::error('建立物流單失敗', $result);
+                        throw new \Exception($rtnMsg);
+                    }
+                }
+
+                // 更新訂單物流資訊
+                // 貨到付款訂單：狀態改為 shipped（已出貨），等送達後才完成入帳
+                // 已付款訂單：狀態改為 completed
+                $newStatus = ($order->payment_method === 'cash_on_delivery')
+                    ? 'shipped'
+                    : 'completed';
+
+                $this->logisticsRepository->updateOrderLogistics($order->id, [
+                    'logistics_trade_no' => $logisticsTradeNo,
+                    'all_pay_logistics_id' => $logisticsId,
+                    'logistics_type' => 'HOME',
+                    'logistics_sub_type' => 'TCAT',
+                    'logistics_status' => Order::LOGISTICS_STATUS_CREATED,
+                    'logistics_response_data' => $result,
+                    'status' => $newStatus,
+                    'shipped_at' => now(),
+                ]);
+
+                Log::info('物流單建立成功', [
+                    'order_id' => $order->id,
+                    'logistics_trade_no' => $logisticsTradeNo,
+                    'all_pay_logistics_id' => $logisticsId,
+                ]);
+
+                // 記錄 activity log
+                $this->logAction($order, 'create', "建立物流單: {$order->order_number}", [
+                    'logistics_trade_no' => $logisticsTradeNo,
+                    'all_pay_logistics_id' => $logisticsId,
+                    'logistics_type' => 'HOME',
+                    'logistics_sub_type' => 'TCAT',
+                ]);
+
+                return [
+                    'success' => true,
+                    'message' => '物流單建立成功',
+                    'data' => [
+                        'logistics_trade_no' => $logisticsTradeNo,
+                        'all_pay_logistics_id' => $logisticsId,
+                    ],
+                ];
+
+            } catch (\Exception $e) {
+                Log::error('建立物流單例外', [
+                    'order_id' => $order->id,
+                    'error' => $e->getMessage(),
+                ]);
+
+                throw $e;
+            }
+        });
     }
 
     /**
@@ -254,6 +264,34 @@ class EcpayLogisticsService
 
         // 轉換物流狀態
         $status = $this->mapLogisticsStatus($logisticsStatus);
+        $oldStatus = $order->logistics_status;
+
+        // 已經是相同狀態，略過重複通知
+        if ($oldStatus === $status) {
+            Log::info('重複的物流狀態通知，略過處理', [
+                'order_id' => $order->id,
+                'logistics_trade_no' => $logisticsTradeNo,
+                'status' => $status,
+            ]);
+            return [
+                'success' => true,
+                'message' => '狀態已處理',
+            ];
+        }
+
+        // 已送達或已失敗的訂單不允許被舊通知覆蓋
+        $finalStatuses = [Order::LOGISTICS_STATUS_DELIVERED, Order::LOGISTICS_STATUS_FAILED];
+        if (in_array($oldStatus, $finalStatuses)) {
+            Log::info('物流已為終態，略過通知', [
+                'order_id' => $order->id,
+                'current_status' => $oldStatus,
+                'incoming_status' => $status,
+            ]);
+            return [
+                'success' => true,
+                'message' => '狀態已處理',
+            ];
+        }
 
         // 更新訂單物流狀態
         $this->logisticsRepository->updateLogisticsStatus($order->id, $status);
@@ -272,7 +310,6 @@ class EcpayLogisticsService
         ]);
 
         // 記錄 activity log
-        $oldStatus = $order->logistics_status;
         $this->logAction($order, 'status_change', "物流狀態變更: {$order->order_number} ({$oldStatus} → {$status})", [
             'logistics_trade_no' => $logisticsTradeNo,
             'old_status' => $oldStatus,
