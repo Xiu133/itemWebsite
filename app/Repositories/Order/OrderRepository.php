@@ -42,6 +42,7 @@ class OrderRepository implements OrderRepositoryInterface
     public function getOrdersByUser($userId)
     {
         return $this->orderModel
+            ->with('items.product')
             ->where('user_id', $userId)
             ->orderBy('created_at', 'desc')
             ->get();

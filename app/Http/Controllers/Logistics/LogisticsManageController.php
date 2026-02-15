@@ -51,22 +51,27 @@ class LogisticsManageController extends Controller
 
         $orders = $query->orderBy('created_at', 'desc')->paginate(15);
 
-        // 統計數據
+        // 4 次查詢合併為 1 次，使用 PostgreSQL COUNT FILTER 語法
+        $rawStats = DB::table('orders')
+            ->selectRaw("
+                COUNT(*) FILTER (WHERE
+                    (status IN ('paid', 'processing') OR (payment_method = 'cash_on_delivery' AND status = 'pending'))
+                    AND logistics_trade_no IS NULL
+                ) as pending_shipment,
+                COUNT(*) FILTER (WHERE logistics_status = ?) as in_transit,
+                COUNT(*) FILTER (WHERE logistics_status = ?) as delivered,
+                COUNT(*) FILTER (WHERE logistics_trade_no IS NOT NULL) as total_shipped
+            ", [
+                Order::LOGISTICS_STATUS_IN_TRANSIT,
+                Order::LOGISTICS_STATUS_DELIVERED,
+            ])
+            ->first();
+
         $stats = [
-            'pending_shipment' => Order::where(function ($q) {
-                    // 已付款待出貨的訂單
-                    $q->whereIn('status', ['paid', 'processing'])
-                      // 或者貨到付款待處理的訂單
-                      ->orWhere(function ($subQ) {
-                          $subQ->where('payment_method', 'cash_on_delivery')
-                               ->where('status', 'pending');
-                      });
-                })
-                ->whereNull('logistics_trade_no')
-                ->count(),
-            'in_transit' => Order::where('logistics_status', Order::LOGISTICS_STATUS_IN_TRANSIT)->count(),
-            'delivered' => Order::where('logistics_status', Order::LOGISTICS_STATUS_DELIVERED)->count(),
-            'total_shipped' => Order::whereNotNull('logistics_trade_no')->count(),
+            'pending_shipment' => (int) $rawStats->pending_shipment,
+            'in_transit' => (int) $rawStats->in_transit,
+            'delivered' => (int) $rawStats->delivered,
+            'total_shipped' => (int) $rawStats->total_shipped,
         ];
 
         return view('logistics.manage.index', compact('orders', 'stats'));

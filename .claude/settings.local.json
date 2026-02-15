@@ -9,7 +9,12 @@
       "Bash(git add:*)",
       "Bash(dir:*)",
       "WebFetch(domain:itemwebsite-1041954866534.asia-east1.run.app)",
-      "Bash(powershell -Command:*)"
+      "Bash(powershell -Command:*)",
+      "Bash(gcloud config get-value:*)",
+      "Bash(gcloud run services list:*)",
+      "Bash(where:*)",
+      "Bash(gcloud.cmd config:*)",
+      "Bash(gcloud.cmd builds submit:*)"
     ]
   }
 }

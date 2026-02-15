@@ -10,48 +10,64 @@ class CommodityController extends Controller
 {
     public function index()
     {
-        // 獲取所有品牌
+        // 取得所有品牌及其上架商品數量（1 次查詢，用 LEFT JOIN + COUNT 取代 N+1 迴圈）
         $brands = DB::table('brands')
-            ->where('is_active', true)
-            ->orderBy('name')
+            ->leftJoin('products', function ($join) {
+                $join->on('brands.id', '=', 'products.brand_id')
+                     ->where('products.is_active', true)
+                     ->whereNull('products.deleted_at');
+            })
+            ->where('brands.is_active', true)
+            ->groupBy('brands.id', 'brands.name')
+            ->orderBy('brands.name')
+            ->select(
+                'brands.id',
+                'brands.name',
+                DB::raw('COUNT(products.id) as count')
+            )
             ->get()
             ->map(function ($brand) {
-                $count = DB::table('products')
-                    ->where('brand_id', $brand->id)
-                    ->where('is_active', true)
-                    ->count();
-
                 return [
                     'id' => $brand->id,
                     'name' => $brand->name,
-                    'count' => $count
+                    'count' => (int) $brand->count
                 ];
             });
 
-        // 獲取所有分類
+        // 取得所有分類及其上架商品數量（1 次查詢）
         $categories = DB::table('categories')
-            ->where('is_active', true)
-            ->orderBy('sort_order')
+            ->leftJoin('products', function ($join) {
+                $join->on('categories.id', '=', 'products.category_id')
+                     ->where('products.is_active', true)
+                     ->whereNull('products.deleted_at');
+            })
+            ->where('categories.is_active', true)
+            ->groupBy('categories.id', 'categories.name', 'categories.slug', 'categories.image', 'categories.sort_order')
+            ->orderBy('categories.sort_order')
+            ->select(
+                'categories.id',
+                'categories.name',
+                'categories.slug',
+                'categories.image',
+                DB::raw('COUNT(products.id) as count')
+            )
             ->get()
             ->map(function ($category) {
-                $count = DB::table('products')
-                    ->where('category_id', $category->id)
-                    ->where('is_active', true)
-                    ->count();
-
                 return [
                     'id' => $category->id,
                     'name' => $category->name,
                     'slug' => $category->slug,
                     'image' => $category->image,
-                    'count' => $count
+                    'count' => (int) $category->count
                 ];
             });
 
-        // 獲取精選商品（帶品牌信息）
+        // 取得精選商品 + 標籤（用 LEFT JOIN 一次取得，取代 N+1 迴圈查 tag）
         $products = DB::table('products')
             ->join('brands', 'products.brand_id', '=', 'brands.id')
             ->join('categories', 'products.category_id', '=', 'categories.id')
+            ->leftJoin(DB::raw('(SELECT DISTINCT ON (product_id) product_id, tag_id FROM product_tag ORDER BY product_id, id) AS first_tag'), 'products.id', '=', 'first_tag.product_id')
+            ->leftJoin('tags', 'first_tag.tag_id', '=', 'tags.id')
             ->select(
                 'products.id',
                 'products.name',
@@ -63,23 +79,17 @@ class CommodityController extends Controller
                 'products.category_id',
                 'products.brand_id',
                 'brands.name as brand',
-                'categories.name as category'
+                'categories.name as category',
+                'tags.name as tag_name',
+                'tags.slug as tag_slug',
+                'tags.color as tag_color'
             )
             ->where('products.is_active', true)
+            ->whereNull('products.deleted_at')
             ->where('products.stock', '>', 0)
             ->orderBy('products.id', 'desc')
             ->get()
             ->map(function ($product) {
-                // 從關聯表取得標籤
-                $tag = DB::table('product_tag')
-                    ->join('tags', 'product_tag.tag_id', '=', 'tags.id')
-                    ->where('product_tag.product_id', $product->id)
-                    ->select('tags.name', 'tags.slug', 'tags.color')
-                    ->first();
-
-                $tagName = $tag->name ?? null;
-                $tagType = $tag->slug ?? '';
-
                 $originalPrice = null;
                 if ($product->original_price && (float)$product->original_price > (float)$product->price) {
                     $originalPrice = (float) $product->original_price;
@@ -93,9 +103,9 @@ class CommodityController extends Controller
                     'price' => (float) $product->price,
                     'originalPrice' => $originalPrice,
                     'image' => $product->image ? '/images/' . $product->image : null,
-                    'tag' => $tagName,
-                    'tagType' => $tagType,
-                    'tagColor' => $tag->color ?? null,
+                    'tag' => $product->tag_name,
+                    'tagType' => $product->tag_slug ?? '',
+                    'tagColor' => $product->tag_color,
                     'stock' => $product->stock,
                     'category' => $product->category,
                     'category_id' => $product->category_id,

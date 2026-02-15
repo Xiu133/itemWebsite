@@ -20,6 +20,7 @@ class ProductManageRepository implements ProductManageRepositoryInterface
     public function getByUserId(int $userId): Collection
     {
         return $this->model
+            ->where('user_id', $userId)
             ->orderBy('created_at', 'desc')
             ->get();
     }

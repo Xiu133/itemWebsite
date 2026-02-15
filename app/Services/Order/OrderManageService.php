@@ -4,6 +4,7 @@ namespace App\Services\Order;
 
 use App\Models\Order\Order;
 use App\Services\Inventory\InventoryService;
+use Illuminate\Support\Facades\DB;
 
 class OrderManageService
 {
@@ -81,14 +82,27 @@ class OrderManageService
 
     public function getStatistics(): array
     {
+        // 7 次查詢合併為 1 次，使用 PostgreSQL COUNT FILTER 語法
+        $stats = DB::table('orders')
+            ->selectRaw("
+                COUNT(*) as total,
+                COUNT(*) FILTER (WHERE status = 'pending') as pending,
+                COUNT(*) FILTER (WHERE status = 'paid') as paid,
+                COUNT(*) FILTER (WHERE status = 'processing') as processing,
+                COUNT(*) FILTER (WHERE status = 'shipped') as shipped,
+                COUNT(*) FILTER (WHERE status = 'completed') as completed,
+                COUNT(*) FILTER (WHERE status = 'cancelled') as cancelled
+            ")
+            ->first();
+
         return [
-            'pending' => Order::where('status', 'pending')->count(),
-            'paid' => Order::where('status', 'paid')->count(),
-            'processing' => Order::where('status', 'processing')->count(),
-            'shipped' => Order::where('status', 'shipped')->count(),
-            'completed' => Order::where('status', 'completed')->count(),
-            'cancelled' => Order::where('status', 'cancelled')->count(),
-            'total' => Order::count(),
+            'pending' => (int) $stats->pending,
+            'paid' => (int) $stats->paid,
+            'processing' => (int) $stats->processing,
+            'shipped' => (int) $stats->shipped,
+            'completed' => (int) $stats->completed,
+            'cancelled' => (int) $stats->cancelled,
+            'total' => (int) $stats->total,
         ];
     }
 

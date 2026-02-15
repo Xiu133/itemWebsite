@@ -4,6 +4,7 @@ namespace App\Services\Payment;
 
 use App\Models\Payment\Payment;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class PaymentManageService
 {
@@ -83,18 +84,34 @@ class PaymentManageService
         $startOfLastMonth = $now->copy()->subMonth()->startOfMonth();
         $endOfLastMonth = $now->copy()->subMonth()->endOfMonth();
 
+        // 8 次查詢合併為 1 次，使用 PostgreSQL COUNT/SUM FILTER 語法
+        $stats = DB::table('payments')
+            ->selectRaw("
+                COUNT(*) as total_count,
+                COUNT(*) FILTER (WHERE status = ?) as pending_count,
+                COUNT(*) FILTER (WHERE status = ?) as paid_count,
+                COUNT(*) FILTER (WHERE status = ?) as refunded_count,
+                COALESCE(SUM(amount) FILTER (WHERE status = ?), 0) as total_revenue,
+                COALESCE(SUM(amount) FILTER (WHERE status = ? AND payment_date >= ?), 0) as monthly_revenue,
+                COALESCE(SUM(amount) FILTER (WHERE status = ? AND payment_date >= ? AND payment_date <= ?), 0) as last_month_revenue
+            ", [
+                Payment::STATUS_PENDING,
+                Payment::STATUS_PAID,
+                Payment::STATUS_REFUNDED,
+                Payment::STATUS_PAID,
+                Payment::STATUS_PAID, $startOfMonth,
+                Payment::STATUS_PAID, $startOfLastMonth, $endOfLastMonth,
+            ])
+            ->first();
+
         return [
-            'total_revenue' => Payment::where('status', Payment::STATUS_PAID)->sum('amount'),
-            'monthly_revenue' => Payment::where('status', Payment::STATUS_PAID)
-                ->where('payment_date', '>=', $startOfMonth)
-                ->sum('amount'),
-            'last_month_revenue' => Payment::where('status', Payment::STATUS_PAID)
-                ->whereBetween('payment_date', [$startOfLastMonth, $endOfLastMonth])
-                ->sum('amount'),
-            'pending_count' => Payment::where('status', Payment::STATUS_PENDING)->count(),
-            'paid_count' => Payment::where('status', Payment::STATUS_PAID)->count(),
-            'refunded_count' => Payment::where('status', Payment::STATUS_REFUNDED)->count(),
-            'total_count' => Payment::count(),
+            'total_revenue' => (float) $stats->total_revenue,
+            'monthly_revenue' => (float) $stats->monthly_revenue,
+            'last_month_revenue' => (float) $stats->last_month_revenue,
+            'pending_count' => (int) $stats->pending_count,
+            'paid_count' => (int) $stats->paid_count,
+            'refunded_count' => (int) $stats->refunded_count,
+            'total_count' => (int) $stats->total_count,
         ];
     }
 
