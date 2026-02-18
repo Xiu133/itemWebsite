@@ -14,3 +14,7 @@ tests/
 .idea/
 *.md
 docker-compose.yml
+nul
+backup.sql
+buildlog.txt
+tmpclaude-*
