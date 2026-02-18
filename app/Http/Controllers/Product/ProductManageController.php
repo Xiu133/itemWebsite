@@ -19,7 +19,7 @@ class ProductManageController extends Controller
 
     public function index()
     {
-        $products = $this->service->getUserProducts(Auth::id());
+        $products = $this->service->getAllProducts();
 
         return view('products.manage.index', compact('products'));
     }

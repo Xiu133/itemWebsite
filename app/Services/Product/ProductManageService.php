@@ -39,9 +39,9 @@ class ProductManageService
         };
     }
 
-    public function getUserProducts(int $userId)
+    public function getAllProducts()
     {
-        $products = $this->repository->getByUserId($userId);
+        $products = $this->repository->getAll();
 
         return $products->map(function ($product) {
             return [

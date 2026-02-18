@@ -25,6 +25,13 @@ class ProductManageRepository implements ProductManageRepositoryInterface
             ->get();
     }
 
+    public function getAll(): Collection
+    {
+        return $this->model
+            ->orderBy('created_at', 'desc')
+            ->get();
+    }
+
     public function findByIdAndUserId(int $id, int $userId)
     {
         return $this->model

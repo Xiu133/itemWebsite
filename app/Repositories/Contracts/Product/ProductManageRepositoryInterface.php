@@ -8,6 +8,8 @@ interface ProductManageRepositoryInterface
 {
     public function getByUserId(int $userId): Collection;
 
+    public function getAll(): Collection;
+
     public function findByIdAndUserId(int $id, int $userId);
 
     public function create(array $data);
