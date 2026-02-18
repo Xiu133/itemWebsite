@@ -159,7 +159,7 @@
       <div class="products-grid">
         <div class="product-card" v-for="product in products" :key="product.id">
           <div class="product-image">
-            <img :src="product.image || '/images/placeholder.svg'" :alt="product.name">
+            <img :src="product.image || '/images/placeholder.svg'" :alt="product.name" @error="$event.target.src='/images/placeholder.svg'">
             <span class="product-tag" :class="product.tagType" v-if="product.tag">@{{ product.tag }}</span>
             <div class="product-actions">
               <button class="product-action-btn" @click.stop="addToCart(product)">
