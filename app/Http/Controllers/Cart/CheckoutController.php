@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Cart;
 
 use App\Http\Controllers\Controller;
+use App\Models\Payment\Payment;
 use App\Services\Order\OrderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -96,6 +97,15 @@ class CheckoutController extends Controller
                     ]
                 ], 201);
             }
+
+            // 貨到付款預建付款記錄
+            Payment::create([
+                'order_id'       => $order->id,
+                'trade_no'       => 'COD-' . $order->order_number,
+                'payment_method' => 'cash_on_delivery',
+                'amount'         => $order->total,
+                'status'         => Payment::STATUS_PENDING,
+            ]);
 
             // 貨到付款直接顯示成功頁面
             return response()->json([

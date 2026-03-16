@@ -50,12 +50,13 @@ class Payment extends Model
     public function getPaymentMethodTextAttribute()
     {
         $methodMap = [
-            'Credit' => '信用卡',
-            'WebATM' => '網路 ATM',
-            'ATM' => 'ATM 轉帳',
-            'CVS' => '超商代碼',
-            'BARCODE' => '超商條碼',
-            'cash_on_delivery' => '貨到付款',
+            'Credit'            => '信用卡',
+            'Credit_CreditCard' => '信用卡',
+            'WebATM'            => '網路 ATM',
+            'ATM'               => 'ATM 轉帳',
+            'CVS'               => '超商代碼',
+            'BARCODE'           => '超商條碼',
+            'cash_on_delivery'  => '貨到付款',
         ];
 
         return $methodMap[$this->payment_method] ?? $this->payment_method;
