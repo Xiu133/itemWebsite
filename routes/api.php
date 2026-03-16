@@ -68,3 +68,7 @@ Route::prefix('ecpay')->group(function () {
     Route::match(['get', 'post'], '/callback', [\App\Http\Controllers\Payment\EcpayController::class, 'callback'])
         ->name('api.ecpay.callback');
 });
+
+// 綠界物流狀態通知（server-to-server，無需 session）
+Route::post('/ecpay-logistics/status-notify', [\App\Http\Controllers\Logistics\EcpayLogisticsController::class, 'statusNotify'])
+    ->name('api.ecpay-logistics.status-notify');

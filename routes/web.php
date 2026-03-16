@@ -141,11 +141,6 @@ Route::prefix('ecpay-logistics')->name('ecpay-logistics.')->group(function () {
         ->middleware('auth')
         ->name('create');
 
-    // 物流狀態通知（綠界回調）
-    // CSRF 排除已在 bootstrap/app.php 中設定
-    Route::post('/status-notify', [EcpayLogisticsController::class, 'statusNotify'])
-        ->name('status-notify');
-
     // 查詢物流狀態（需登入）
     Route::get('/query/{order}', [EcpayLogisticsController::class, 'query'])
         ->middleware('auth')

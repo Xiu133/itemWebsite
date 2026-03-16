@@ -24,13 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
         ]);
 
-        // 排除綠界金流和物流回調路由的 CSRF 驗證
-        // 注意：api 路由本身不需要 CSRF，但保留這裡以防萬一
-        $middleware->validateCsrfTokens(except: [
-            'api/ecpay/notify',
-            'api/ecpay/callback',
-            'ecpay-logistics/status-notify',
-        ]);
+        // api 路由本身不需要 CSRF，此處無需額外排除
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

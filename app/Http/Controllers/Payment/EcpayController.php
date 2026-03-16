@@ -153,7 +153,7 @@ HTML;
             'trade_no' => $payment->trade_no,
             'amount' => $payment->amount,
             'status' => $payment->status,
-            'paid_at' => $payment->paid_at?->format('Y-m-d H:i:s'),
+            'paid_at' => $payment->payment_date?->format('Y-m-d H:i:s'),
         ] : null;
 
         // 取得當前用戶 ID（用於清除購物車）
