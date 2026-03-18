@@ -145,4 +145,9 @@ Route::prefix('ecpay-logistics')->name('ecpay-logistics.')->group(function () {
     Route::get('/query/{order}', [EcpayLogisticsController::class, 'query'])
         ->middleware('auth')
         ->name('query');
+
+    // 物流狀態通知（ECPay 伺服器回呼，不需登入）
+    Route::post('/status-notify', [EcpayLogisticsController::class, 'statusNotify'])
+        ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class])
+        ->name('status-notify');
 });
